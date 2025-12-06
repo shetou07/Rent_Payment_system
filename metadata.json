@@ -1,0 +1,7 @@
+{
+  "name": "Kigali Rent Intelligence",
+  "description": "AI-powered rent tracking and payment intelligence system for Rwanda. Extracts data from MoMo SMS and receipts.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
