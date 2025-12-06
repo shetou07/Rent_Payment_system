@@ -1,12 +1,13 @@
-
 import React, { useState } from 'react';
-import { ViewState, RentRecord, ExtractionResult, PaymentMethod, DocumentType } from './types';
+import { ViewState, RentRecord, ExtractionResult, PaymentMethod, DocumentType, UserRole } from './types';
 import Dashboard from './components/Dashboard';
+import LandlordDashboard from './components/LandlordDashboard';
 import AddRent from './components/AddRent';
 import History from './components/History';
 import Navigation from './components/Navigation';
 import ExtractionModal from './components/ExtractionModal';
 import { extractRentDetails } from './services/geminiService';
+import { UserCircle2 } from 'lucide-react';
 
 // Mock Data for initial state
 const MOCK_RECORDS: RentRecord[] = [
@@ -40,6 +41,7 @@ const MOCK_RECORDS: RentRecord[] = [
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('dashboard');
+  const [role, setRole] = useState<UserRole>('tenant');
   const [records, setRecords] = useState<RentRecord[]>(MOCK_RECORDS);
   
   // Modal State
@@ -69,25 +71,46 @@ const App: React.FC = () => {
     setView('history');
   };
 
+  const toggleRole = () => {
+    setRole(prev => prev === 'tenant' ? 'landlord' : 'tenant');
+    setView('dashboard'); // Reset to dashboard on switch
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 font-sans">
       {/* Top Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">K</div>
-          <h1 className="font-bold text-lg tracking-tight text-slate-800">Kigali Rent Intel</h1>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold transition-colors ${role === 'tenant' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+            K
+          </div>
+          <h1 className="font-bold text-lg tracking-tight text-slate-800">
+            {role === 'tenant' ? 'Rent Intel' : 'Landlord Pro'}
+          </h1>
         </div>
-        <button className="text-sm text-blue-600 font-medium">
-          {records.length} Records
+        
+        <button 
+          onClick={toggleRole}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors text-xs font-bold text-slate-600 border border-slate-200"
+        >
+          <UserCircle2 size={16} />
+          {role === 'tenant' ? 'Tenant View' : 'Landlord View'}
         </button>
       </header>
 
       {/* Main Content Area */}
       <main className="max-w-md mx-auto p-4">
-        {view === 'dashboard' && (
+        {view === 'dashboard' && role === 'tenant' && (
           <Dashboard 
             records={records} 
             onAddClick={() => setView('add')} 
+          />
+        )}
+
+        {view === 'dashboard' && role === 'landlord' && (
+          <LandlordDashboard
+            records={records}
+            onAddClick={() => setView('add')}
           />
         )}
         

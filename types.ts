@@ -41,3 +41,5 @@ export interface ExtractionResult {
 }
 
 export type ViewState = 'dashboard' | 'add' | 'history' | 'settings';
+
+export type UserRole = 'tenant' | 'landlord';
