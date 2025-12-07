@@ -1,3 +1,4 @@
+
 export enum PaymentMethod {
   MOMO = 'Mobile Money (MTN)',
   AIRTEL = 'Airtel Money',
@@ -26,6 +27,16 @@ export interface RentRecord {
   confidenceScore: number; // 0-100 from AI
   originalText?: string; // For SMS
   documentType: DocumentType;
+}
+
+export interface Unit {
+  id: string;
+  name: string;
+  tenantName: string; // Use "Vacant" or empty string if empty
+  tenantPhone?: string;
+  tenantEmail?: string;
+  rentAmount: number;
+  dueDateDay: number; // Day of month (1-31)
 }
 
 export interface ExtractionResult {

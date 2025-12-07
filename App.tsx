@@ -1,13 +1,15 @@
+
 import React, { useState } from 'react';
-import { ViewState, RentRecord, ExtractionResult, PaymentMethod, DocumentType, UserRole } from './types';
+import { ViewState, RentRecord, ExtractionResult, PaymentMethod, DocumentType, UserRole, Unit } from './types';
 import Dashboard from './components/Dashboard';
 import LandlordDashboard from './components/LandlordDashboard';
 import AddRent from './components/AddRent';
 import History from './components/History';
 import Navigation from './components/Navigation';
 import ExtractionModal from './components/ExtractionModal';
+import LandlordAuth from './components/LandlordAuth';
 import { extractRentDetails } from './services/geminiService';
-import { UserCircle2 } from 'lucide-react';
+import { UserCircle2, Shield } from 'lucide-react';
 
 // Mock Data for initial state
 const MOCK_RECORDS: RentRecord[] = [
@@ -17,7 +19,7 @@ const MOCK_RECORDS: RentRecord[] = [
     currency: 'RWF',
     date: '2023-10-01',
     landlordName: 'Jean Claude',
-    tenantName: 'Me',
+    tenantName: 'Keza Marie',
     paymentMethod: PaymentMethod.MOMO,
     description: 'Rent October',
     isVerified: true,
@@ -30,7 +32,7 @@ const MOCK_RECORDS: RentRecord[] = [
     currency: 'RWF',
     date: '2023-09-01',
     landlordName: 'Jean Claude',
-    tenantName: 'Me',
+    tenantName: 'Keza Marie',
     paymentMethod: PaymentMethod.MOMO,
     description: 'Rent September',
     isVerified: true,
@@ -39,19 +41,31 @@ const MOCK_RECORDS: RentRecord[] = [
   }
 ];
 
+const INITIAL_UNITS: Unit[] = [
+  { id: 'u1', name: 'Unit A1 (Ground)', tenantName: 'Keza Marie', tenantPhone: '0788123456', tenantEmail: 'keza@example.com', rentAmount: 150000, dueDateDay: 1 },
+  { id: 'u2', name: 'Unit A2 (Ground)', tenantName: 'Jean Claude', tenantPhone: '0788654321', tenantEmail: 'jean@example.com', rentAmount: 150000, dueDateDay: 5 },
+  { id: 'u3', name: 'Unit B1 (Upper)', tenantName: 'Patrick N.', tenantPhone: '0788987654', tenantEmail: 'patrick@example.com', rentAmount: 200000, dueDateDay: 1 },
+  { id: 'u4', name: 'Unit B2 (Upper)', tenantName: 'Vacant', rentAmount: 200000, dueDateDay: 1 },
+];
+
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('dashboard');
   const [role, setRole] = useState<UserRole>('tenant');
   const [records, setRecords] = useState<RentRecord[]>(MOCK_RECORDS);
+  const [units, setUnits] = useState<Unit[]>(INITIAL_UNITS);
   
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Auth State
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLandlordAuthenticated, setIsLandlordAuthenticated] = useState(false);
+
+  // Extraction Modal State
+  const [isExtractionModalOpen, setIsExtractionModalOpen] = useState(false);
   const [extractionData, setExtractionData] = useState<ExtractionResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleExtract = async (input: string | File) => {
     setIsProcessing(true);
-    setIsModalOpen(true);
+    setIsExtractionModalOpen(true);
     setExtractionData(null); // Reset previous data
 
     try {
@@ -67,34 +81,69 @@ const App: React.FC = () => {
 
   const handleConfirmRecord = (record: RentRecord) => {
     setRecords([record, ...records]);
-    setIsModalOpen(false);
+    setIsExtractionModalOpen(false);
     setView('history');
   };
 
-  const toggleRole = () => {
-    setRole(prev => prev === 'tenant' ? 'landlord' : 'tenant');
-    setView('dashboard'); // Reset to dashboard on switch
+  const handleManualRecord = (record: RentRecord) => {
+    setRecords([record, ...records]);
+  };
+
+  const handleAddUnit = (unit: Unit) => {
+    setUnits([...units, unit]);
+  };
+
+  const handleUpdateUnit = (updatedUnit: Unit) => {
+    setUnits(units.map(u => u.id === updatedUnit.id ? updatedUnit : u));
+  };
+
+  const handleDeleteUnit = (unitId: string) => {
+    setUnits(units.filter(u => u.id !== unitId));
+  };
+
+  const handleRoleSwitchRequest = () => {
+    if (role === 'landlord') {
+      // Switching back to tenant
+      setRole('tenant');
+      setView('dashboard');
+      // Reset auth so PIN is required next time
+      setIsLandlordAuthenticated(false);
+    } else {
+      // Switching to landlord: Always require PIN check
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setIsLandlordAuthenticated(true);
+    setIsAuthModalOpen(false);
+    setRole('landlord');
+    setView('dashboard');
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 font-sans">
       {/* Top Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-4 py-3 flex justify-between items-center shadow-sm">
+      <header className={`border-b sticky top-0 z-10 px-4 py-3 flex justify-between items-center shadow-sm transition-colors duration-500 ${role === 'landlord' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold transition-colors ${role === 'tenant' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors ${role === 'tenant' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-blue-400'}`}>
             K
           </div>
-          <h1 className="font-bold text-lg tracking-tight text-slate-800">
+          <h1 className={`font-bold text-lg tracking-tight ${role === 'landlord' ? 'text-white' : 'text-slate-800'}`}>
             {role === 'tenant' ? 'Rent Intel' : 'Landlord Pro'}
           </h1>
         </div>
         
         <button 
-          onClick={toggleRole}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors text-xs font-bold text-slate-600 border border-slate-200"
+          onClick={handleRoleSwitchRequest}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-xs font-bold border ${
+            role === 'landlord' 
+              ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700' 
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+          }`}
         >
-          <UserCircle2 size={16} />
-          {role === 'tenant' ? 'Tenant View' : 'Landlord View'}
+          {role === 'tenant' ? <UserCircle2 size={16} /> : <Shield size={16} />}
+          {role === 'tenant' ? 'Tenant View' : 'Landlord Mode'}
         </button>
       </header>
 
@@ -110,6 +159,11 @@ const App: React.FC = () => {
         {view === 'dashboard' && role === 'landlord' && (
           <LandlordDashboard
             records={records}
+            units={units}
+            onAddUnit={handleAddUnit}
+            onUpdateUnit={handleUpdateUnit}
+            onDeleteUnit={handleDeleteUnit}
+            onAddRecord={handleManualRecord}
             onAddClick={() => setView('add')}
           />
         )}
@@ -126,13 +180,19 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Extraction Modal */}
+      {/* Modals */}
       <ExtractionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isExtractionModalOpen}
+        onClose={() => setIsExtractionModalOpen(false)}
         onConfirm={handleConfirmRecord}
         extractionData={extractionData}
         isProcessing={isProcessing}
+      />
+
+      <LandlordAuth 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleAuthSuccess}
       />
 
       {/* Bottom Navigation */}
